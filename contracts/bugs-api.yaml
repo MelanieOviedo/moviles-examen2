@@ -1,0 +1,149 @@
+openapi: 3.0.0
+info:
+  title: ButterTech Bug Tracker API
+  description: API Contract for the reactive MVP bug tracking system.
+  version: 1.0.0
+
+servers:
+  - url: https://api.buttertech.com/v1
+    description: Production server
+
+paths:
+  /bugs:
+    get:
+      summary: Recuperar lista de bugs
+      description: Retorna una lista de bugs ordenados por severidad (CRITICAL primero).
+      parameters:
+        - name: severity
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Severity'
+      responses:
+        '200':
+          description: Lista de bugs obtenida exitosamente.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Bug'
+              example:
+                - id: "BUG-8A2F"
+                  title: "Fallo crítico en el módulo de pagos"
+                  severity: "CRITICAL"
+                  priority: "URGENT"
+                  status: "OPEN"
+                  affectedSystem: "Checkout Service"
+                  category: "Security"
+                  createdAt: "2023-10-27T10:00:00Z"
+
+    post:
+      summary: Crear un nuevo bug
+      description: Registra un bug en el sistema. Requiere validación de campos obligatorios.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BugCreateRequest'
+            example:
+              title: "Error 500 al cargar el perfil de usuario"
+              severity: "HIGH"
+              priority: "MEDIUM"
+              affectedSystem: "Mobile App"
+              category: "API Integration"
+      responses:
+        '201':
+          description: Bug creado exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bug'
+
+  /bugs/{bugId}:
+    get:
+      summary: Obtener detalle de un bug
+      parameters:
+        - name: bugId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalle del bug.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bug'
+        '404':
+          description: Bug no encontrado.
+
+    patch:
+      summary: Actualizar estado o prioridad
+      description: Permite actualizaciones parciales para el flujo de trabajo (Workflow).
+      parameters:
+        - name: bugId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BugUpdateRequest'
+            example:
+              status: "IN_PROGRESS"
+              priority: "HIGH"
+      responses:
+        '200':
+          description: Bug actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bug'
+
+components:
+  schemas:
+    Bug:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        severity: { $ref: '#/components/schemas/Severity' }
+        priority: { $ref: '#/components/schemas/Priority' }
+        status: { $ref: '#/components/schemas/BugStatus' }
+        affectedSystem: { type: string }
+        category: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    BugCreateRequest:
+      type: object
+      required: [title, severity, priority, affectedSystem, category]
+      properties:
+        title: { type: string, minLength: 5 }
+        severity: { $ref: '#/components/schemas/Severity' }
+        priority: { $ref: '#/components/schemas/Priority' }
+        affectedSystem: { type: string }
+        category: { type: string }
+
+    BugUpdateRequest:
+      type: object
+      properties:
+        priority: { $ref: '#/components/schemas/Priority' }
+        status: { $ref: '#/components/schemas/BugStatus' }
+
+    Severity:
+      type: string
+      enum: [CRITICAL, HIGH, MEDIUM, LOW]
+
+    Priority:
+      type: string
+      enum: [URGENT, HIGH, MEDIUM, LOW]
+
+    BugStatus:
+      type: string
+      enum: [OPEN, IN_PROGRESS, RESOLVED, CLOSED]
